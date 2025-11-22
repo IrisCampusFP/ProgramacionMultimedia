@@ -168,7 +168,8 @@ public class MainActivity extends AppCompatActivity {
         return 0;
     }
 
-    // Métodos del autor original
+    // Metodos de operaciones
+
     public double suma(double num1, double num2) {
         return num1 + num2;
     }
