@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -11,7 +12,14 @@ public class GameManager : MonoBehaviour
     public Text scoreText;
 
     public int score = 0;
-    public TMPro.TMP_Text bestScoreText;
+    public TMP_Text bestScoreText;
+
+    // Combo
+    public float tiempoCombo = 1.2f;
+    public TMP_Text comboText;
+    
+    private int cortesEnCombo = 0;
+    private float tiempoInicioCombo = 0f;
 
     void Start()
     {
@@ -35,8 +43,11 @@ public class GameManager : MonoBehaviour
         spawner.enabled = true; // Activa el spawner de objetos (frutas / bombas)
 
         score = 0;
-        scoreText.text = score.ToString(); // Establece el score en 0
-        ActualizarTextoBestScore();
+        scoreText.text = score.ToString(); // Actualiza el texto del score al score inicial (0)
+        ActualizarTextoBestScore(); // Actualiza el texto del best score
+
+        cortesEnCombo = 0;
+        nivelCombo = 0;
     }
 
     // Elimina los objetos existentes (frutas / bombas)
@@ -48,13 +59,80 @@ public class GameManager : MonoBehaviour
 
     public void AumentarScore(int points)
     {
+        ComprobarCombo();
+
         score += points;
         scoreText.text = score.ToString();
 
         spawner.ActualizarDificultad(score);
 
+        // Actualiza el best score si se supera
         if (score > PlayerPrefs.GetInt("bestScore", 0))
             PlayerPrefs.SetInt("bestScore", score);
+    }
+
+    private int nivelCombo = 0;
+
+    // Registra cada corte de fruta y evalúa si se alcanza un combo
+    void ComprobarCombo()
+    {
+        float tiempoActual = Time.time;
+
+        // Si se supera el tiempo de inicio de un combo, se reinicia el contador
+        if (tiempoActual - tiempoInicioCombo > tiempoCombo)
+        {
+            cortesEnCombo = 1;
+            tiempoInicioCombo = tiempoActual;
+            nivelCombo = 0;
+        }
+        else
+        {
+            cortesEnCombo++;
+
+            // Si se cumple algún combo, sumo su puntuación equivalente
+            /* Resto en la suma la puntuación del combo anterior
+             * para que no se acumulen los puntos entre combos */
+
+            if (cortesEnCombo >= 10 && nivelCombo < 10)
+            {
+                score += (10 - nivelCombo);
+                nivelCombo = 10;
+                MostrarCombo(10);
+            }
+            else if (cortesEnCombo >= 5 && nivelCombo < 5)
+            {
+                score += (5 - nivelCombo);
+                nivelCombo = 5;
+                MostrarCombo(5);
+            }
+            else if (cortesEnCombo >= 3 && nivelCombo == 0)
+            {
+                score += 3;
+                nivelCombo = 3;
+                MostrarCombo(3);
+            }
+        }
+    }
+
+    // Muestra el texto del combo correspondiente
+    void MostrarCombo(int puntos)
+    {
+        scoreText.text = score.ToString(); // Recargo el texto del score mostrado
+
+        if (comboText != null)
+        {
+            comboText.text = "¡COMBO +" + puntos + "!";
+            comboText.enabled = true;
+            Invoke("OcultarCombo", 1.2f); // Se vuelve a ocultar el texto
+        }
+    }
+
+    void OcultarCombo()
+    {
+        if (comboText != null)
+        {
+            comboText.enabled = false;
+        }
     }
 
     void ActualizarTextoBestScore()
